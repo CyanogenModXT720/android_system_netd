@@ -27,6 +27,7 @@
 
 #include "UsbController.h"
 
+#define USE_xt720 "yup" // use specific xt720 usb mode switching
 
 UsbController::UsbController() {
 }
@@ -45,20 +46,35 @@ int UsbController::stopRNDIS() {
 }
 
 int UsbController::enableRNDIS(bool enable) {
+
+#ifndef USE_xt720
+
     char value[20];
 #ifdef USE_HTC_USB_FUNCTION_SWITCH
     int fd = open("/sys/devices/platform/msm_hsusb/usb_function_switch", O_RDWR);
     int count = snprintf(value, sizeof(value), "%d\n", (enable ? 4 : 3));
 #else
+
     int fd = open("/sys/class/usb_composite/rndis/enable", O_RDWR);
     int count = snprintf(value, sizeof(value), "%d\n", (enable ? 1 : 0));
 #endif
     write(fd, value, count);
     close(fd);
     return 0;
+
+#else //USE_xt720
+// ok here may be will have to place pkill usbd && echo eth_adb > /dev/usb_device_mode
+// but for now just return 0
+
+    return 0;
+
+#endif //USE_xt720
 }
 
 bool UsbController::isRNDISStarted() {
+
+#ifndef USE_xt720
+
     char value=0;
 #ifdef USE_HTC_USB_FUNCTION_SWITCH
     int fd = open("/sys/devices/platform/msm_hsusb/usb_function_switch", O_RDWR);
@@ -72,4 +88,15 @@ bool UsbController::isRNDISStarted() {
 #else
     return (value == '1' ? true : false);
 #endif
+
+#else // USE_xt720
+
+//may be here will take place reading current mode
+//but for now just return true
+
+    return true;
+
+#endif
+
+
 }
