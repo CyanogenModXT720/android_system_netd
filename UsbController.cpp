@@ -65,7 +65,14 @@ int UsbController::enableRNDIS(bool enable) {
 #else //USE_xt720
 // ok here may be will have to place pkill usbd && echo eth_adb > /dev/usb_device_mode
 // but for now just return 0
+// use defy way
 
+    char buffer[128];
+
+    snprintf(buffer, sizeof(buffer),
+             "/system/bin/am broadcast -a com.motorola.intent.action.USB_TETHERING_TOGGLED --ei state %d",
+             enable ? 1 : 0);
+    system(buffer);
     return 0;
 
 #endif //USE_xt720
@@ -93,8 +100,27 @@ bool UsbController::isRNDISStarted() {
 
 //may be here will take place reading current mode
 //but for now just return true
+// use defy way
 
-    return true;
+    bool rndisActive = false;
+    FILE *stateFile = fopen("/tmp/usbd-state", "r");
+
+    if (stateFile != NULL) {
+        char buffer[128];
+
+        memset(buffer, 0, sizeof(buffer));
+        if (fread(buffer, 1, sizeof(buffer), stateFile) > 0) {
+            LOGD("Got USBD state %s", buffer);
+            rndisActive = strstr(buffer, "ngp") != NULL; //todo check phone values
+        } else {
+            LOGD("Could not read USBD state file (errno %d)", errno);
+        }
+
+        fclose(stateFile);
+    }
+
+    return rndisActive;
+
 
 #endif
 
